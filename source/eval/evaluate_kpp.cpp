@@ -17,10 +17,10 @@ namespace Eval
 {
 
 // KKPファイル名
-#define KKP_BIN "eval/kkp32ap.bin"
+#define KKP_BIN "eval\\kkp32ap.bin"
 
 // KPPファイル名
-#define KPP_BIN "eval/kpp16ap.bin"
+#define KPP_BIN "eval\\kpp16ap.bin"
 
   typedef int16_t ValueKpp;
   typedef int32_t ValueKkp;
@@ -97,6 +97,7 @@ namespace Eval
 
   Error:;
     cout << "\ninfo string open evaluation file failed.\n";
+//    cout << "\nERROR open evaluation file failed.\n";
     // 評価関数ファイルの読み込みに失敗した場合、思考を開始しないように抑制したほうがいいと思う。
   }
 
