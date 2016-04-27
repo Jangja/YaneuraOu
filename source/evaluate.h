@@ -35,6 +35,25 @@ namespace Eval {
 
 #else
   // Bona6の駒割りを初期値に。それぞれの駒の価値。
+#if defined(EVAL_APERY) || defined(EVAL_TWIG)
+  // Aperyの駒の価値
+  enum {
+    PawnValue = 90,
+    LanceValue = 315,
+    KnightValue = 405,
+    SilverValue = 495,
+    GoldValue = 540,
+    BishopValue = 855,
+    RookValue = 990,
+    ProPawnValue = 540,
+    ProLanceValue = 540,
+    ProKnightValue = 540,
+    ProSilverValue = 540,
+    HorseValue = 945,
+    DragonValue = 1395,
+    KingValue = 15000,
+  };
+#else
   enum {
     PawnValue = 86,
     LanceValue = 227,
@@ -52,6 +71,7 @@ namespace Eval {
     KingValue = 15000,
   };
 
+#endif
   // 駒の価値のテーブル(後手の駒は負の値)
   extern int PieceValue[PIECE_NB];
 
@@ -74,6 +94,26 @@ namespace Eval {
 
     BONA_PIECE_ZERO = 0, // 無効な駒。駒落ちのときなどは、不要な駒をここに移動させる。
 
+#if defined(EVAL_APERY) || defined(EVAL_TWIG)
+    // YaneuraOuとAperyで持駒のindexが違うので補正する(#_hand_#+1する)
+    // --- 手駒
+    f_hand_pawn = BONA_PIECE_ZERO + 1,//0//0+1
+    e_hand_pawn = 20,//f_hand_pawn + 19,//19+1
+    f_hand_lance = 39,//e_hand_pawn + 19,//38+1
+    e_hand_lance = 44,//f_hand_lance + 5,//43+1
+    f_hand_knight = 49,//e_hand_lance + 5,//48+1
+    e_hand_knight = 54,//f_hand_knight + 5,//53+1
+    f_hand_silver = 59,//e_hand_knight + 5,//58+1
+    e_hand_silver = 64,//f_hand_silver + 5,//63+1
+    f_hand_gold = 69,//e_hand_silver + 5,//68+1
+    e_hand_gold = 74,//f_hand_gold + 5,//73+1
+    f_hand_bishop = 79,//e_hand_gold + 5,//78+1
+    e_hand_bishop = 82,//f_hand_bishop + 3,//81+1
+    f_hand_rook = 85,//e_hand_bishop + 3,//84+1
+    e_hand_rook = 88,//f_hand_rook + 3,//87+1
+    fe_hand_end = 90,//e_hand_rook + 3,//90
+
+#else
     // --- 手駒
     f_hand_pawn = BONA_PIECE_ZERO + 1,
     e_hand_pawn = f_hand_pawn + 18,
@@ -91,6 +131,7 @@ namespace Eval {
     e_hand_rook = f_hand_rook + 2,
     fe_hand_end = e_hand_rook + 2,
 
+#endif
     // Bonanzaのように番号を詰めない。
     // 理由1) 学習のときに相対PPで1段目に香がいるときがあって、それが逆変換において正しく表示するのが難しい。
     // 理由2) 縦型BitboardだとSquareからの変換に困る。

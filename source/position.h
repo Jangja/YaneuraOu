@@ -129,7 +129,7 @@ struct StateInfo {
   Value materialValue;
 #endif
 
-#ifdef EVAL_KPP
+#if defined(EVAL_KPP) || defined(EVAL_APERY) || defined(EVAL_TWIG)
   // 評価値。(次の局面で評価値を差分計算するときに用いる)
   // まだ計算されていなければsumKPPの値は、INT_MAX
   int sumKKP;

@@ -216,6 +216,12 @@
     <ClCompile Include="engine\2016-mid-engine\2016-mid-search.cpp">
       <Filter>リソース ファイル\engine\2016-mid-engine</Filter>
     </ClCompile>
+    <ClCompile Include="eval\evaluate_apery.cpp">
+      <Filter>リソース ファイル\eval</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\evaluate_twig.cpp">
+      <Filter>リソース ファイル\eval</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\docs\USI拡張コマンド.txt">

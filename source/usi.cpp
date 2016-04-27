@@ -87,11 +87,18 @@ namespace USI
     if (v == VALUE_NONE)
       s << "none";
 
+#ifdef USER_ENGINE
+    else if (abs(v) < VALUE_MAX_EVAL)
+      s << "cp " << v * 100 / int(Eval::PawnValue);
+    else
+      s << "cp " << (v > 0 ? 33400 : -33400);
+#else
     else if (abs(v) < VALUE_MATE_IN_MAX_PLY)
       s << "cp " << v * 100 / int(Eval::PawnValue);
     else
       s << "mate " << (v > 0 ? VALUE_MATE - v - 1 : -VALUE_MATE - v + 1);
 
+#endif
     return s.str();
   }
   
@@ -589,9 +596,11 @@ void USI::loop(int argc,char* argv[])
     // 思考エンジンの準備が出来たかの確認
     else if (token == "isready") is_ready_cmd(pos);
 
+#if 0 //TODO
     // ユーザーによる実験用コマンド。user.cppのuser()が呼び出される。
     else if (token == "user") user_test(pos,is);
 
+#endif
     // 現在の局面を表示する。(デバッグ用)
     else if (token == "d") cout << pos << endl;
 

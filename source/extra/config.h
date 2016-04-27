@@ -255,8 +255,22 @@
 // --- ユーザーの自作エンジンとして実行ファイルを公開するとき用の設定集
 
 #ifdef USER_ENGINE
-#define ENGINE_NAME "YaneuraOu user engine"
-#define EVAL_KPP
+#define ENGINE_NAME "god_whale_sdt4a"
+//#define ASSERT_LV 3
+#define ENABLE_TEST_CMD
+#if 0
+#define EVAL_APERY
+#else
+#define EVAL_TWIG
+#endif
+#define USE_SEE
+#define USE_MOVE_PICKER
+#define LONG_EFFECT_LIBRARY
+#define MATE_1PLY
+#define USE_ENTERING_KING_WIN
+#define USE_TIME_MANAGEMENT
+#define KEEP_PIECE_IN_COUNTER_MOVE
+#define USE_DROPBIT_IN_STATS
 #endif
 
 // --------------------
@@ -405,13 +419,17 @@ typedef uint32_t Move32;
 #define EVAL_TYPE_NAME "KPP"
 #elif defined(EVAL_PPE)
 #define EVAL_TYPE_NAME "PPE"
+#elif defined(EVAL_APERY)
+#define EVAL_TYPE_NAME "WCSC25"
+#elif defined(EVAL_TWIG)
+#define EVAL_TYPE_NAME "TWIG"
 #else
 #define EVAL_TYPE_NAME ""
 #endif
 
 // PP,KPP,PPEならdo_move()のときに移動した駒の管理をして差分計算
 // また、それらの評価関数は駒割りの計算(EVAL_MATERIAL)に依存するので、それをdefineしてやる。
-#if defined(EVAL_PP) || defined(EVAL_KPP) || defined(EVAL_PPE)
+#if defined(EVAL_PP) || defined(EVAL_KPP) || defined(EVAL_PPE) || defined(EVAL_APERY) || defined(EVAL_TWIG)
 #define USE_EVAL_DIFF
 #endif
 
