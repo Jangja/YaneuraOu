@@ -189,36 +189,40 @@ namespace Eval
   // pos.st->BKPP,WKPP,KPPを初期化する。Position::set()で一度だけ呼び出される。(以降は差分計算)
   Value compute_eval(const Position& pos)
   {
-    Square sq_bk0 = pos.king_square(BLACK);
-    Square sq_wk0 = pos.king_square(WHITE);
-    Square sq_wk1 = Inv(pos.king_square(WHITE));
+    Square sq_bk = pos.king_square(BLACK);
+    Square sq_wk = pos.king_square(WHITE);
+    const auto* ppkppb = kpp[sq_bk];
+    const auto* ppkppw = kpp[Inv(sq_wk)];
 
     auto& pos_ = *const_cast<Position*>(&pos);
     auto list = pos_.eval_list()->piece_list();
 
     int i, j;
-    BonaPiece k0, k1;
+    BonaPiece k0, k1, l0, l1;
     int32_t sumBKPP, sumWKPP, sumKKP, sumTurn;
 
-    sumKKP = kk[sq_bk0][sq_wk0][0]; //kkp[sq_bk0][sq_wk1][fe_end];
-    sumTurn = kk[sq_bk0][sq_wk0][1];
+    sumKKP = kk[sq_bk][sq_wk][0]; //kkp[sq_bk0][sq_wk1][fe_end];
+    sumTurn = kk[sq_bk][sq_wk][1];
     sumBKPP = 0;
     sumWKPP = 0;
 
-    for (i = 0; i < PIECE_NO_KING; i++)
+    for (i = 0; i < PIECE_NO_KING; ++i)
     {
       k0 = list[i].fb;
       k1 = list[i].fw;
-      sumKKP += kkp[sq_bk0][sq_wk0][k0][0];
-      sumTurn += kkp[sq_bk0][sq_wk0][k0][1];
-
-      for (j = 0; j < i; j++)
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
+      for (j = 0; j < i; ++j)
       {
-        sumBKPP += kpp[sq_bk0][k0][list[j].fb][0];
-        sumWKPP += kpp[sq_wk1][k1][list[j].fw][0];
-        sumTurn += kpp[sq_bk0][k0][list[j].fb][1];
-        sumTurn += kpp[sq_wk1][k1][list[j].fw][1];
+        l0 = list[j].fb;
+        l1 = list[j].fw;
+        sumBKPP += pkppb[l0][0];
+        sumTurn += pkppb[l0][1];
+        sumWKPP += pkppw[l1][0];
+        sumTurn += pkppw[l1][1];
       }
+      sumKKP += kkp[sq_bk][sq_wk][k0][0];
+      sumTurn += kkp[sq_bk][sq_wk][k0][1];
     }
 
     auto& info = *pos.state();

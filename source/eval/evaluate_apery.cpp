@@ -38,9 +38,6 @@ namespace Eval
   ValueKpp kpp[SQ_NB][fe_end][fe_end];
 
   // KKP
-  // fe_endまでにしてしまう。これによりPiece番号がKPPとKKPとで共通になる。
-  // さらに、2パラ目のKはInv(K2)を渡すものとすればkppと同じInv(K2)で済む。
-  // [][][fe_end]のところはKK定数にしてあるものとする。
   ValueKkp kkp[SQ_NB][SQ_NB][fe_end];
 
   // KK
@@ -192,32 +189,36 @@ namespace Eval
   // pos.st->BKPP,WKPP,KPPを初期化する。Position::set()で一度だけ呼び出される。(以降は差分計算)
   Value compute_eval(const Position& pos)
   {
-    Square sq_bk0 = pos.king_square(BLACK);
-    Square sq_wk0 = pos.king_square(WHITE);
-    Square sq_wk1 = Inv(pos.king_square(WHITE));
+    Square sq_bk = pos.king_square(BLACK);
+    Square sq_wk = pos.king_square(WHITE);
+    const auto* ppkppb = kpp[sq_bk];
+    const auto* ppkppw = kpp[Inv(sq_wk)];
 
     auto& pos_ = *const_cast<Position*>(&pos);
     auto list = pos_.eval_list()->piece_list();
 
     int i, j;
-    BonaPiece k0, k1;
+    BonaPiece k0, k1, l0, l1;
     int32_t sumBKPP, sumWKPP, sumKKP;
 
-    sumKKP = kk[sq_bk0][sq_wk0]; //kkp[sq_bk0][sq_wk1][fe_end];
+    sumKKP = kk[sq_bk][sq_wk]; //kkp[sq_bk0][sq_wk1][fe_end];
     sumBKPP = 0;
     sumWKPP = 0;
 
-    for (i = 0; i < PIECE_NO_KING; i++)
+    for (i = 0; i < PIECE_NO_KING; ++i)
     {
       k0 = list[i].fb;
       k1 = list[i].fw;
-      sumKKP += kkp[sq_bk0][sq_wk0][k0];
-
-      for (j = 0; j < i; j++)
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
+      for (j = 0; j < i; ++j)
       {
-        sumBKPP += kpp[sq_bk0][k0][list[j].fb];
-        sumWKPP -= kpp[sq_wk1][k1][list[j].fw];
+        l0 = list[j].fb;
+        l1 = list[j].fw;
+        sumBKPP += pkppb[l0];
+        sumWKPP -= pkppw[l1];
       }
+      sumKKP += kkp[sq_bk][sq_wk][k0];
     }
 
     auto& info = *pos.state();
@@ -240,7 +241,7 @@ namespace Eval
     // KKP配列の32bit化に伴い、KKP用だけ512倍しておく。(それくらいの計算精度はあるはず..)
     // 最終的なKKP = sumKKP / (FV_SCALE * FV_SCALE_KKP)
 
-    return Value(sumBKPP + sumWKPP + sumKKP + pos.state()->materialValue * FV_SCALE);
+    return Value(sumBKPP + sumWKPP + sumKKP) / FV_SCALE;
   }
 
   Value calc_diff_kpp(const Position& pos)
@@ -517,19 +518,19 @@ namespace Eval
   // 評価関数
   Value evaluate(const Position& pos)
   {
-#if 0
+#if 1
     // 差分計算
     auto score = calc_diff_kpp(pos) + pos.state()->materialValue;
 #else
     // 非差分計算
-    auto score = compute_eval(pos);// +pos.state()->materialValue;
+    auto score = compute_eval(pos) + pos.state()->materialValue;
 #endif
     ASSERT_LV5(pos.state()->materialValue == Eval::material(pos));
 
     // 差分計算と非差分計算との計算結果が合致するかのテスト。(さすがに重いのでコメントアウトしておく)
     //    ASSERT_LV5(score == compute_eval(pos) + pos.state()->materialValue);
 
-    return (pos.side_to_move() == BLACK ? score : -score)/ FV_SCALE;
+    return pos.side_to_move() == BLACK ? score : -score;
   }
 
   // 現在の局面の評価値の内訳を表示する。
