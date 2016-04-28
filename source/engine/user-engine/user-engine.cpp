@@ -591,8 +591,13 @@ namespace YaneuraOuClassicTce
 
     // このあとnodeを展開していくので、evaluate()の差分計算ができないと速度面で損をするから、
     // evaluate()を呼び出していないなら呼び出しておく。
+#ifdef EVAL_TWIG
+    if (pos.state()->sum[0][0] == INT_MAX)
+      evaluate(pos);
+#else
     if (pos.state()->sumKKP == INT_MAX)
       evaluate(pos);
+#endif
 
     while ((move = mp.next_move()) != MOVE_NONE)
     {
@@ -1228,8 +1233,13 @@ namespace YaneuraOuClassicTce
     // このあとnodeを展開していくので、evaluate()の差分計算ができないと速度面で損をするから、
     // evaluate()を呼び出していないなら呼び出しておく。
     // ss->staticEvalに代入するとimprovingの判定間違うのでそれはしないほうがよさげ。
+#ifdef EVAL_TWIG
+    if (pos.state()->sum[0][0] == INT_MAX)
+      evaluate(pos);
+#else
     if (pos.state()->sumKKP == INT_MAX)
       evaluate(pos);
+#endif
 
     MovePicker mp(pos, ttMove, depth, thisThread->history, cmh, fmh, cm, ss);
 

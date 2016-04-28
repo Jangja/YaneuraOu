@@ -132,9 +132,13 @@ struct StateInfo {
 #if defined(EVAL_KPP) || defined(EVAL_APERY) || defined(EVAL_TWIG)
   // 評価値。(次の局面で評価値を差分計算するときに用いる)
   // まだ計算されていなければsumKPPの値は、INT_MAX
+#ifdef EVAL_TWIG
+  int sum[3][2];// sumKK[0][0] sumBK[1][0] sumWK[2][0] sumTurn[][1] 
+#else
   int sumKKP;
   int sumBKPP;
   int sumWKPP;
+#endif
 #endif
 
 #ifdef USE_EVAL_DIFF

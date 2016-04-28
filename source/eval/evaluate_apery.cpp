@@ -152,9 +152,6 @@ namespace Eval
     // 評価関数ファイルの読み込みに失敗した場合、思考を開始しないように抑制したほうがいいと思う。
   }
 
-  // KKPのスケール
-  //const int FV_SCALE_KKP = 512;
-  
   // KPP,KPのスケール
   const int FV_SCALE = 32;
 
@@ -201,7 +198,7 @@ namespace Eval
     BonaPiece k0, k1, l0, l1;
     int32_t sumBKPP, sumWKPP, sumKKP;
 
-    sumKKP = kk[sq_bk][sq_wk]; //kkp[sq_bk0][sq_wk1][fe_end];
+    sumKKP = kk[sq_bk][sq_wk];
     sumBKPP = 0;
     sumWKPP = 0;
 
@@ -340,7 +337,7 @@ namespace Eval
           sumBKPP = 0;
 
           // このときKKPは差分で済まない。
-          sumKKP = Eval::kk[sq_bk0][sq_wk0];//Eval::kkp[sq_bk0][sq_wk1][fe_end];
+          sumKKP = Eval::kk[sq_bk0][sq_wk0];
 
           // 片側まるごと計算
           for (i = 0; i < PIECE_NO_KING; i++)
@@ -518,13 +515,13 @@ namespace Eval
   // 評価関数
   Value evaluate(const Position& pos)
   {
-#if 1
+
     // 差分計算
     auto score = calc_diff_kpp(pos) + pos.state()->materialValue;
-#else
+
     // 非差分計算
-    auto score = compute_eval(pos) + pos.state()->materialValue;
-#endif
+//  auto score = compute_eval(pos) + pos.state()->materialValue;
+
     ASSERT_LV5(pos.state()->materialValue == Eval::material(pos));
 
     // 差分計算と非差分計算との計算結果が合致するかのテスト。(さすがに重いのでコメントアウトしておく)

@@ -258,7 +258,7 @@
 #define ENGINE_NAME "god_whale_sdt4a"
 //#define ASSERT_LV 3
 #define ENABLE_TEST_CMD
-#if 1
+#if 0
 #define EVAL_APERY
 #else
 #define EVAL_TWIG

@@ -152,9 +152,6 @@ namespace Eval
     // 評価関数ファイルの読み込みに失敗した場合、思考を開始しないように抑制したほうがいいと思う。
   }
 
-  // KKPのスケール
-  //const int FV_SCALE_KKP = 512;
-  
   // KPP,KPのスケール
   const int FV_SCALE = 32;
 
@@ -199,12 +196,14 @@ namespace Eval
 
     int i, j;
     BonaPiece k0, k1, l0, l1;
-    int32_t sumBKPP, sumWKPP, sumKKP, sumTurn;
+    int32_t sum[3][2];
 
-    sumKKP = kk[sq_bk][sq_wk][0]; //kkp[sq_bk0][sq_wk1][fe_end];
-    sumTurn = kk[sq_bk][sq_wk][1];
-    sumBKPP = 0;
-    sumWKPP = 0;
+    sum[0][0] = kk[sq_bk][sq_wk][0];
+    sum[0][1] = kk[sq_bk][sq_wk][1];
+    sum[1][0] = 0;
+    sum[1][1] = 0;
+    sum[2][0] = 0;
+    sum[2][1] = 0;
 
     for (i = 0; i < PIECE_NO_KING; ++i)
     {
@@ -216,19 +215,22 @@ namespace Eval
       {
         l0 = list[j].fb;
         l1 = list[j].fw;
-        sumBKPP += pkppb[l0][0];
-        sumTurn += pkppb[l0][1];
-        sumWKPP += pkppw[l1][0];
-        sumTurn += pkppw[l1][1];
+        sum[1][0] += pkppb[l0][0];
+        sum[1][1] += pkppb[l0][1];
+        sum[2][0] += pkppw[l1][0];
+        sum[2][1] += pkppw[l1][1];
       }
-      sumKKP += kkp[sq_bk][sq_wk][k0][0];
-      sumTurn += kkp[sq_bk][sq_wk][k0][1];
+      sum[0][0] += kkp[sq_bk][sq_wk][k0][0];
+      sum[0][1] += kkp[sq_bk][sq_wk][k0][1];
     }
 
     auto& info = *pos.state();
-    info.sumKKP = Value(sumKKP);
-    info.sumBKPP = Value(sumBKPP);
-    info.sumWKPP = Value(sumWKPP);
+    info.sum[0][0] = Value(sum[0][0]);
+    info.sum[1][0] = Value(sum[1][0]);
+    info.sum[2][0] = Value(sum[2][0]);
+    info.sum[0][1] = Value(sum[0][1]);
+    info.sum[1][1] = Value(sum[1][1]);
+    info.sum[2][1] = Value(sum[2][1]);
 
 #ifdef USE_EHASH
 
@@ -242,29 +244,30 @@ namespace Eval
 
 #endif
 
-    // KKP配列の32bit化に伴い、KKP用だけ512倍しておく。(それくらいの計算精度はあるはず..)
-    // 最終的なKKP = sumKKP / (FV_SCALE * FV_SCALE_KKP)
+    sum[0][0] += pos.state()->materialValue * FV_SCALE;
 
-    sumKKP += pos.state()->materialValue * FV_SCALE;
-
-    int score = sumBKPP - sumWKPP + sumKKP;
-    score = ((pos.side_to_move() == BLACK) ? score : -score) + sumTurn;
+    int scoreBoard = sum[1][0] - sum[2][0] + sum[0][0];
+    int scoreTurn = sum[0][1] + sum[1][1] + sum[2][1];
+    int score = ((pos.side_to_move() == BLACK) ? scoreBoard : -scoreBoard) + scoreTurn;
 
     return Value(score / FV_SCALE);
   }
-#if 0
+#if 1
   Value calc_diff_kpp(const Position& pos)
   {
     // 過去に遡って差分を計算していく。
     auto st = pos.state();
 
     // すでに計算されている。rootか？
-    int sumKKP, sumBKPP, sumWKPP;
-    if (st->sumKKP != INT_MAX)
+    int sum[3][2];
+    if (st->sum[0][0] != INT_MAX)
     {
-      sumKKP = st->sumKKP;
-      sumBKPP = st->sumBKPP;
-      sumWKPP = st->sumWKPP;
+      sum[0][0] = st->sum[0][0];
+      sum[0][1] = st->sum[0][1];
+      sum[1][0] = st->sum[1][0];
+      sum[1][1] = st->sum[1][1];
+      sum[2][0] = st->sum[2][0];
+      sum[2][1] = st->sum[2][1];
       goto CALC_DIFF_END;
     }
 
@@ -290,7 +293,7 @@ namespace Eval
     auto now = st;
     auto prev = st->previous;
 
-    if (prev->sumKKP == INT_MAX)
+    if (prev->sum[0][0] == INT_MAX)
     {
 #ifdef USE_EHASH
       HASH_KEY key2 = prev->key();
@@ -308,18 +311,24 @@ namespace Eval
       {
         // 全計算
         compute_eval(pos);
-        sumKKP = now->sumKKP;
-        sumBKPP = now->sumBKPP;
-        sumWKPP = now->sumWKPP;
+        sum[0][0] = now->sum[0][0];
+        sum[0][1] = now->sum[0][1];
+        sum[1][0] = now->sum[1][0];
+        sum[1][1] = now->sum[1][1];
+        sum[2][0] = now->sum[2][0];
+        sum[2][1] = now->sum[2][1];
         goto CALC_DIFF_END;
       }
     }
 
     // この差分を求める
     {
-      sumKKP = prev->sumKKP;
-      sumBKPP = prev->sumBKPP;
-      sumWKPP = prev->sumWKPP;
+      sum[0][0] = prev->sum[0][0];
+      sum[0][1] = prev->sum[0][1];
+      sum[1][0] = prev->sum[1][0];
+      sum[1][1] = prev->sum[1][1];
+      sum[2][0] = prev->sum[2][0];
+      sum[2][1] = prev->sum[2][1];
       int k0, k1, k2, k3;
 
       auto sq_bk0 = pos.king_square(BLACK);
@@ -346,19 +355,25 @@ namespace Eval
           // 現在の玉の位置に移動させて計算する。
           // 先手玉に関するKKP,KPPは全計算なので一つ前の値は関係ない。
 
-          sumBKPP = 0;
+          sum[1][0] = 0;//BKPP
+          sum[1][1] = 0;
 
           // このときKKPは差分で済まない。
-          sumKKP = Eval::kk[sq_bk0][sq_wk0];//Eval::kkp[sq_bk0][sq_wk1][fe_end];
+          sum[0][0] = Eval::kk[sq_bk0][sq_wk0][0];
+          sum[0][1] = Eval::kk[sq_bk0][sq_wk0][1];
 
           // 片側まるごと計算
           for (i = 0; i < PIECE_NO_KING; i++)
           {
             k0 = now_list[i].fb;
-            sumKKP += Eval::kkp[sq_bk0][sq_wk0][k0];
+            sum[0][0] += Eval::kkp[sq_bk0][sq_wk0][k0][0];
+            sum[0][1] += Eval::kkp[sq_bk0][sq_wk0][k0][1];
 
             for (j = 0; j < i; j++)
-              sumBKPP += Eval::kpp[sq_bk0][k0][now_list[j].fb];
+            {
+              sum[1][0] += Eval::kpp[sq_bk0][k0][now_list[j].fb][0];//BKPP
+              sum[1][1] += Eval::kpp[sq_bk0][k0][now_list[j].fb][1];
+            }
           }
 
           // もうひとつの駒がないならこれで計算終わりなのだが。
@@ -373,13 +388,17 @@ namespace Eval
             // WKは移動していないのでこれは前のままでいい。
             for (i = 0; i < dirty; ++i)
             {
-              sumWKPP += Eval::kpp[sq_wk1][k1][now_list[i].fw];
-              sumWKPP -= Eval::kpp[sq_wk1][k3][now_list[i].fw];
+              sum[2][0] -= Eval::kpp[sq_wk1][k1][now_list[i].fw][0];
+              sum[2][1] -= Eval::kpp[sq_wk1][k1][now_list[i].fw][1];
+              sum[2][0] += Eval::kpp[sq_wk1][k3][now_list[i].fw][0];
+              sum[2][1] += Eval::kpp[sq_wk1][k3][now_list[i].fw][1];
             }
             for (++i; i < PIECE_NO_KING; ++i)
             {
-              sumWKPP += Eval::kpp[sq_wk1][k1][now_list[i].fw];
-              sumWKPP -= Eval::kpp[sq_wk1][k3][now_list[i].fw];
+              sum[2][0] -= Eval::kpp[sq_wk1][k1][now_list[i].fw][0];
+              sum[2][1] -= Eval::kpp[sq_wk1][k1][now_list[i].fw][1];
+              sum[2][0] += Eval::kpp[sq_wk1][k3][now_list[i].fw][0];
+              sum[2][1] += Eval::kpp[sq_wk1][k3][now_list[i].fw][1];
             }
           }
 
@@ -389,17 +408,23 @@ namespace Eval
           // ----------------------------
           ASSERT_LV3(dirty == PIECE_NO_WKING);
 
-          sumWKPP = 0;
-          sumKKP = Eval::kk[sq_bk0][sq_wk0]; //Eval::kkp[sq_bk0][sq_wk1][fe_end];
+          sum[2][0] = 0;//WKPP
+          sum[2][1] = 0;
+          sum[0][0] = Eval::kk[sq_bk0][sq_wk0][0];
+          sum[0][1] = Eval::kk[sq_bk0][sq_wk0][1];
 
           for (i = 0; i < PIECE_NO_KING; i++)
           {
             k0 = now_list[i].fb; // これ、KKPテーブルにk1側も入れておいて欲しい気はするが..
             k1 = now_list[i].fw;
-            sumKKP += Eval::kkp[sq_bk0][sq_wk0][k0];
+            sum[0][0] += Eval::kkp[sq_bk0][sq_wk0][k0][0];
+            sum[0][1] += Eval::kkp[sq_bk0][sq_wk0][k0][1];
 
             for (j = 0; j < i; j++)
-              sumWKPP -= Eval::kpp[sq_wk1][k1][now_list[j].fw];
+            {
+              sum[2][0] += Eval::kpp[sq_wk1][k1][now_list[j].fw][0];//WKPP
+              sum[2][1] += Eval::kpp[sq_wk1][k1][now_list[j].fw][1];
+            }
           }
 
           if (k == 2)
@@ -410,13 +435,17 @@ namespace Eval
             dirty = dp.pieceNo[1];
             for (i = 0; i < dirty; ++i)
             {
-              sumBKPP -= Eval::kpp[sq_bk0][k0][now_list[i].fb];
-              sumBKPP += Eval::kpp[sq_bk0][k2][now_list[i].fb];
+              sum[1][0] -= Eval::kpp[sq_bk0][k0][now_list[i].fb][0];
+              sum[1][1] -= Eval::kpp[sq_bk0][k0][now_list[i].fb][1];
+              sum[1][0] += Eval::kpp[sq_bk0][k2][now_list[i].fb][0];
+              sum[1][1] += Eval::kpp[sq_bk0][k2][now_list[i].fb][1];
             }
             for (++i; i < PIECE_NO_KING; ++i)
             {
-              sumBKPP -= Eval::kpp[sq_bk0][k0][now_list[i].fb];
-              sumBKPP += Eval::kpp[sq_bk0][k2][now_list[i].fb];
+              sum[1][0] -= Eval::kpp[sq_bk0][k0][now_list[i].fb][0];
+              sum[1][1] -= Eval::kpp[sq_bk0][k0][now_list[i].fb][1];
+              sum[1][0] += Eval::kpp[sq_bk0][k2][now_list[i].fb][0];
+              sum[1][1] += Eval::kpp[sq_bk0][k2][now_list[i].fb][1];
             }
           }
         }
@@ -427,10 +456,14 @@ namespace Eval
         // ----------------------------
 
 #define ADD_BWKPP(W0,W1,W2,W3) { \
-          sumBKPP -= Eval::kpp[sq_bk0][W0][now_list[i].fb]; \
-          sumWKPP += Eval::kpp[sq_wk1][W1][now_list[i].fw]; \
-          sumBKPP += Eval::kpp[sq_bk0][W2][now_list[i].fb]; \
-          sumWKPP -= Eval::kpp[sq_wk1][W3][now_list[i].fw]; \
+          sum[1][0] -= Eval::kpp[sq_bk0][W0][now_list[i].fb][0]; \
+          sum[1][1] -= Eval::kpp[sq_bk0][W0][now_list[i].fb][1]; \
+          sum[2][0] -= Eval::kpp[sq_wk1][W1][now_list[i].fw][0]; \
+          sum[2][1] -= Eval::kpp[sq_wk1][W1][now_list[i].fw][1]; \
+          sum[1][0] += Eval::kpp[sq_bk0][W2][now_list[i].fb][0]; \
+          sum[1][1] += Eval::kpp[sq_bk0][W2][now_list[i].fb][1]; \
+          sum[2][0] += Eval::kpp[sq_wk1][W3][now_list[i].fw][0]; \
+          sum[2][1] += Eval::kpp[sq_wk1][W3][now_list[i].fw][1]; \
 }
 
         if (k == 1)
@@ -443,8 +476,10 @@ namespace Eval
           k3 = dp.pieceNow[0].fw;
 
           // KKP差分
-          sumKKP -= Eval::kkp[sq_bk0][sq_wk0][k0];
-          sumKKP += Eval::kkp[sq_bk0][sq_wk0][k2];
+          sum[0][0] -= Eval::kkp[sq_bk0][sq_wk0][k0][0];
+          sum[0][1] -= Eval::kkp[sq_bk0][sq_wk0][k0][1];
+          sum[0][0] += Eval::kkp[sq_bk0][sq_wk0][k2][0];
+          sum[0][1] += Eval::kkp[sq_bk0][sq_wk0][k2][1];
 
           // KP値、要らんのでi==dirtyを除く
           for (i = 0; i < dirty; ++i)
@@ -472,10 +507,14 @@ namespace Eval
           m3 = dp.pieceNow[1].fw;
 
           // KKP差分
-          sumKKP -= Eval::kkp[sq_bk0][sq_wk0][k0];
-          sumKKP += Eval::kkp[sq_bk0][sq_wk0][k2];
-          sumKKP -= Eval::kkp[sq_bk0][sq_wk0][m0];
-          sumKKP += Eval::kkp[sq_bk0][sq_wk0][m2];
+          sum[0][0] -= Eval::kkp[sq_bk0][sq_wk0][k0][0];
+          sum[0][1] -= Eval::kkp[sq_bk0][sq_wk0][k0][1];
+          sum[0][0] += Eval::kkp[sq_bk0][sq_wk0][k2][0];
+          sum[0][1] += Eval::kkp[sq_bk0][sq_wk0][k2][1];
+          sum[0][0] -= Eval::kkp[sq_bk0][sq_wk0][m0][0];
+          sum[0][1] -= Eval::kkp[sq_bk0][sq_wk0][m0][1];
+          sum[0][0] += Eval::kkp[sq_bk0][sq_wk0][m2][0];
+          sum[0][1] += Eval::kkp[sq_bk0][sq_wk0][m2][1];
 
           // KPP差分
           for (i = 0; i < dirty; ++i)
@@ -494,18 +533,25 @@ namespace Eval
             ADD_BWKPP(m0, m1, m2, m3);
           }
 
-          sumBKPP -= Eval::kpp[sq_bk0][k0][m0];
-          sumWKPP += Eval::kpp[sq_wk1][k1][m1];
-          sumBKPP += Eval::kpp[sq_bk0][k2][m2];
-          sumWKPP -= Eval::kpp[sq_wk1][k3][m3];
+          sum[1][0] -= Eval::kpp[sq_bk0][k0][m0][0];
+          sum[1][1] -= Eval::kpp[sq_bk0][k0][m0][1];
+          sum[2][0] -= Eval::kpp[sq_wk1][k1][m1][0];
+          sum[2][1] -= Eval::kpp[sq_wk1][k1][m1][1];
+          sum[1][0] += Eval::kpp[sq_bk0][k2][m2][0];
+          sum[1][1] += Eval::kpp[sq_bk0][k2][m2][1];
+          sum[2][0] += Eval::kpp[sq_wk1][k3][m3][0];
+          sum[2][1] += Eval::kpp[sq_wk1][k3][m3][1];
 
         }
       }
     }
 
-    now->sumKKP = sumKKP;
-    now->sumBKPP = sumBKPP;
-    now->sumWKPP = sumWKPP;
+    now->sum[0][0] = sum[0][0];
+    now->sum[0][1] = sum[0][1];
+    now->sum[1][0] = sum[1][0];
+    now->sum[1][1] = sum[1][1];
+    now->sum[2][0] = sum[2][0];
+    now->sum[2][1] = sum[2][1];
 
 #ifdef USE_EHASH
     // せっかく計算したのでehashに保存しておく。
@@ -520,19 +566,26 @@ namespace Eval
 #endif
 
     // 差分計算終わり
-  CALC_DIFF_END:;
-    return (Value)((sumBKPP + sumWKPP + sumKKP) / FV_SCALE);
+CALC_DIFF_END:;
+
+    sum[0][0] += pos.state()->materialValue * FV_SCALE;
+
+    int scoreBoard = sum[1][0] - sum[2][0] + sum[0][0];
+    int scoreTurn = sum[0][1] + sum[1][1] + sum[2][1];
+    int score = ((pos.side_to_move() == BLACK) ? scoreBoard : -scoreBoard) + scoreTurn;
+
+    return Value(score / FV_SCALE);
   }
 #endif
   // 評価関数
   Value evaluate(const Position& pos)
   {
-#if 0
+#if 1
     // 差分計算
-    auto score = calc_diff_kpp(pos) + pos.state()->materialValue;
+    auto score = calc_diff_kpp(pos);
 #else
     // 非差分計算
-    auto score = compute_eval(pos);// +pos.state()->materialValue;
+    auto score = compute_eval(pos);
 #endif
     ASSERT_LV5(pos.state()->materialValue == Eval::material(pos));
 
