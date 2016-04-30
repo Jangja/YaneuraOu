@@ -200,6 +200,7 @@
       <StackReserveSize>100000000</StackReserveSize>
       <HeapReserveSize>
       </HeapReserveSize>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
