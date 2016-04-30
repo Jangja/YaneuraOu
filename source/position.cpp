@@ -898,7 +898,8 @@ void Position::do_move_impl(Move m, StateInfo& new_st, bool givesCheck)
   // KPPのとき差分計算は遅延させるのでここではKPPの値を未計算であることを意味するINT_MAXを代入しておく。
   // これVALUNE_NONEにするとsumKKPが32bitなので偶然一致することがある。
 #ifdef EVAL_TWIG
-  st->sum[0][0] = INT_MAX;
+  //st->sum[0][0] = INT_MAX;
+  st->sum.p[2][0] = INT_MAX;
 #else
   st->sumKKP = INT_MAX;
 #endif

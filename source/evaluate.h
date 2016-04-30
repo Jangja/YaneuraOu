@@ -233,4 +233,114 @@ namespace Eval {
 #endif
 }
 
+
+#ifdef EVAL_TWIG
+#include <array>
+#include <fstream>
+#include <string>
+using namespace std;
+
+template <typename Tl, typename Tr>
+inline std::array<Tl, 2> operator += (std::array<Tl, 2>& lhs, const std::array<Tr, 2>& rhs) {
+  lhs[0] += rhs[0];
+  lhs[1] += rhs[1];
+  return lhs;
+}
+template <typename Tl, typename Tr>
+inline std::array<Tl, 2> operator -= (std::array<Tl, 2>& lhs, const std::array<Tr, 2>& rhs) {
+  lhs[0] -= rhs[0];
+  lhs[1] -= rhs[1];
+  return lhs;
+}
+
+struct EvalSum {
+#if defined USE_AVX2_EVAL
+  EvalSum(const EvalSum& es) {
+    _mm256_store_si256(&mm, es.mm);
+  }
+  EvalSum& operator = (const EvalSum& rhs) {
+    _mm256_store_si256(&mm, rhs.mm);
+    return *this;
+  }
+#elif defined USE_SSE_EVAL
+  EvalSum(const EvalSum& es) {
+    _mm_store_si128(&m[0], es.m[0]);
+    _mm_store_si128(&m[1], es.m[1]);
+  }
+  EvalSum& operator = (const EvalSum& rhs) {
+    _mm_store_si128(&m[0], rhs.m[0]);
+    _mm_store_si128(&m[1], rhs.m[1]);
+    return *this;
+  }
+#endif
+  EvalSum() {}
+  int32_t sum(const Color c) const {
+    const int32_t scoreBoard = p[0][0] - p[1][0] + p[2][0];
+    const int32_t scoreTurn = p[0][1] + p[1][1] + p[2][1];
+    return (c == BLACK ? scoreBoard : -scoreBoard) + scoreTurn;
+  }
+  EvalSum& operator += (const EvalSum& rhs) {
+#if defined USE_AVX2_EVAL
+    mm = _mm256_add_epi32(mm, rhs.mm);
+#elif defined USE_SSE_EVAL
+    m[0] = _mm_add_epi32(m[0], rhs.m[0]);
+    m[1] = _mm_add_epi32(m[1], rhs.m[1]);
+#else
+    p[0][0] += rhs.p[0][0];
+    p[0][1] += rhs.p[0][1];
+    p[1][0] += rhs.p[1][0];
+    p[1][1] += rhs.p[1][1];
+    p[2][0] += rhs.p[2][0];
+    p[2][1] += rhs.p[2][1];
+#endif
+    return *this;
+  }
+  EvalSum& operator -= (const EvalSum& rhs) {
+#if defined USE_AVX2_EVAL
+    mm = _mm256_sub_epi32(mm, rhs.mm);
+#elif defined USE_SSE_EVAL
+    m[0] = _mm_sub_epi32(m[0], rhs.m[0]);
+    m[1] = _mm_sub_epi32(m[1], rhs.m[1]);
+#else
+    p[0][0] -= rhs.p[0][0];
+    p[0][1] -= rhs.p[0][1];
+    p[1][0] -= rhs.p[1][0];
+    p[1][1] -= rhs.p[1][1];
+    p[2][0] -= rhs.p[2][0];
+    p[2][1] -= rhs.p[2][1];
+#endif
+    return *this;
+  }
+  EvalSum operator + (const EvalSum& rhs) const { return EvalSum(*this) += rhs; }
+  EvalSum operator - (const EvalSum& rhs) const { return EvalSum(*this) -= rhs; }
+
+#if 0
+  // ehash 用。
+  void encode() {
+#if defined USE_AVX2_EVAL
+    // EvalSum は atomic にコピーされるので key が合っていればデータも合っている。
+#else
+    key ^= data[0] ^ data[1] ^ data[2];
+#endif
+  }
+  void decode() { encode(); }
+#endif
+#if 1
+  union {
+    std::array<std::array<int32_t, 2>, 3> p;
+    struct {
+      uint64_t data[3];
+      uint64_t key; // ehash用。
+    };
+#if defined USE_AVX2_EVAL
+    __m256i mm;
+#endif
+#if defined USE_AVX2_EVAL || defined USE_SSE_EVAL
+    __m128i m[2];
+#endif
+  };
+#endif
+};
+#endif
+
 #endif // #ifndef EVALUATE_H
