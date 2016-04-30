@@ -271,6 +271,11 @@
 #define USE_TIME_MANAGEMENT
 #define KEEP_PIECE_IN_COUNTER_MOVE
 #define USE_DROPBIT_IN_STATS
+#if defined(USE_AVX2)
+#define USE_AVX2_EVAL
+#elif defined(USE_SSE42)
+#define USE_SSE_EVAL
+#endif
 #endif
 
 // --------------------

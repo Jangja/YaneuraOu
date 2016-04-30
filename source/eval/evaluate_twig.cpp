@@ -182,6 +182,27 @@ namespace Eval
 
     sum.p[2] = kk[sq_bk][sq_wk];
 
+#if defined USE_AVX2_EVAL || defined USE_SSE_EVAL
+    sum.m[0] = _mm_setzero_si128();
+    for (i = 0; i < PIECE_NO_KING; ++i) 
+    {
+      k0 = list[i].fb;
+      k1 = list[i].fw;
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
+      for (j = 0; j < i; ++j) 
+      {
+        l0 = list[j].fb;
+        l1 = list[j].fw;
+        __m128i tmp;
+        tmp = _mm_set_epi32(0, 0, *reinterpret_cast<const int32_t*>(&pkppw[l1][0]), *reinterpret_cast<const int32_t*>(&pkppb[l0][0]));
+        tmp = _mm_cvtepi16_epi32(tmp);
+        sum.m[0] = _mm_add_epi32(sum.m[0], tmp);
+      }
+      sum.p[2] += kkp[sq_bk][sq_wk][k0];
+    }
+
+#else
     sum.p[0][0] = 0;
     sum.p[0][1] = 0;
     sum.p[1][0] = 0;
@@ -203,6 +224,7 @@ namespace Eval
       sum.p[2] += kkp[sq_bk][sq_wk][k0];
     }
 
+#endif
     auto& info = *pos.state();
     info.sum = sum;
 
